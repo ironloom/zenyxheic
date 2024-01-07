@@ -2,6 +2,7 @@ from PIL import Image
 from pillow_heif import register_heif_opener
 from zenyx import printf
 import os
+import sys
 
 register_heif_opener()
 
@@ -28,24 +29,35 @@ def list_files_in_directory(directory_path):
     return file_paths
 
 
-def convert_heic_to_png(heic_path: str):
+def convert_heic_to_png(heic_path: str, mode: int):
     try:
+        modes: dict[int, list[str, str]] = {
+            0: ["png", "PNG"],
+            1: ["jpg", "JPEG"]
+        }
+
         png_path = heic_path.replace(heic_path.split("\\")[-2], "heic_converted")
-        png_path = png_path[:-4] + png_path[-4:].replace("heic", "png").replace(
-            "HEIC", "png"
+        png_path = png_path[:-4] + png_path[-4:].replace("heic", modes[mode][0]).replace(
+            "HEIC", modes[mode][0]
         )
 
         # Open HEIC image
         heic_image = Image.open(heic_path)
-
+        
+        max_size = (1920, 1920)
+        heic_image.thumbnail(max_size)
         # Save as PNG
-        heic_image.save(png_path, format="PNG")
+        heic_image.save(png_path, format=modes[mode][1])
 
         printf(f"@!✓ Success:$& {os.path.basename(heic_path)} ⟹  {os.path.basename(png_path)}")
     except Exception as e:
         printf(f"@!✗ Error:$& {e}")
 
-def main():
+def main(mode: int):
+    mode = int(mode)
+    if mode < 0 or mode > 1:
+        raise Exception("Mode does not exist: 0 - PNG; 1 - JPEG")
+
     printf.clear_screen()
     printf.title("HEIC ⟹  PNG")
     files_list = list_files_in_directory("input")
@@ -55,7 +67,8 @@ def main():
     for file_path in files_list:
         if not str(os.path.basename(file_path)).lower().endswith("heic"):
             continue
-        convert_heic_to_png(file_path)
+        convert_heic_to_png(file_path, mode)
 
 if __name__ == "__main__":
-    main()
+    args: list[str] = sys.argv
+    main(args[1])
